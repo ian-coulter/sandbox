@@ -36,15 +36,16 @@ def math(choice):
 
 # Variable(s)    
 invalid_input = ("!!! You typed an invalid option, please try again !!!")
+choices = ['1','2','3','4']
 
 # What math do you want to do?
 def main_calc():
     while True:
         choice = input("\nSelect your operation\n1. Add\n2. Subtract\n3. Multiply\n4. Divide\n\nOption: ")
-        if choice in ['1','2','3','4']:
+        if choice in choices:
             math(choice)
             break
-        elif choice != ['1','2','3','4']:
+        elif choice != choices:
             print(invalid_input)
             continue
 

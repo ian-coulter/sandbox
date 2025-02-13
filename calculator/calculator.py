@@ -25,18 +25,22 @@ def calcs(choice, x,y):
 
 # Grabbing the first and second number, then run calculations
 def math(choice):
-    x=float(input("What is your first number? "))
-    y=float(input("What is your second number? "))
+    try:
+        x=float(input("What is your first number? "))
+        y=float(input("What is your second number? "))
+    except ValueError:
+        print("You didn't enter a number")
+        return
 
     print(calcs(choice, x, y))
 
 # Variable(s)    
-invalid_input = ("\n!!! You typed an invalid option, please try again !!!\n")
+invalid_input = ("!!! You typed an invalid option, please try again !!!")
 
 # What math do you want to do?
 def main_calc():
     while True:
-        choice = input("Select your operation\n1. Add\n2. Subtract\n3. Multiply\n4. Divide\nOption: ")
+        choice = input("\nSelect your operation\n1. Add\n2. Subtract\n3. Multiply\n4. Divide\n\nOption: ")
         if choice in ['1','2','3','4']:
             math(choice)
             break
@@ -47,7 +51,7 @@ def main_calc():
 # Want to do more math?
 def more_calc():
     while True:
-        more_math = input("Do you want to do another math? (y/n): ")
+        more_math = input("\nDo you want to do another math? (y/n): ")
         if more_math == 'y':
             main_calc()
         elif more_math == 'n':

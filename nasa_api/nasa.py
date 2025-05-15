@@ -6,6 +6,15 @@ nasa_api = "https://images-api.nasa.gov"
 search_for = input("What do you want to search the NASA images API for? ")
 output_dir = (f"{search_for.replace(' ', '_')}_images")
 
+# Ask the user how many images they want to download
+try:
+    max_images = int(input("How many images do you want to download? "))
+    if max_images <= 0:
+        raise ValueError("The number of images must be greater than 0.")
+except ValueError as e:
+    print(f"Invalid input: {e}")
+    exit(1)
+
 def download_things(output_dir=output_dir):
     try:
         # Create the output directory if it doesn't exist
@@ -24,8 +33,8 @@ def download_things(output_dir=output_dir):
             print(f"No images found for {search_for}.")
             return
 
-        # Limit the number of images to 20
-        items = items[:20]
+        # Limit the number of images to the user-specified amount
+        items = items[:max_images]
 
         # Download each image
         for index, item in enumerate(items):

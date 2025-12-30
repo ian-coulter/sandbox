@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PortStatus</title>
+
+<meta name="color-scheme" content="dark light"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+:root{
+  --bg:#ffffff;
+  --panel:#f6f7f9;
+  --panel2:#ffffff;
+  --txt:#0f172a;
+  --muted:#475569;
+  --green:#16a34a;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+      --purple:#a855f7;
+--gray:#64748b;
+  --line:rgba(15,23,42,.12);
+  --btnBg:#ffffff;
+  --btnBorder:rgba(15,23,42,.14);
+  --btnHover:#2563eb;
+  --pillBg:#ffffff;
+  --pillBorder:rgba(15,23,42,.16);
+  --shadow:0 10px 30px rgba(0,0,0,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1220;
+    --panel:#0e172a;
+    --panel2:#0b162c;
+    --txt:#e5e7eb;
+    --muted:#9ca3af;
+    --line:#1f2a44;
+    --btnBg:#0b1a33;
+    --btnBorder:#24304e;
+    --pillBg:#0b1a33;
+    --pillBorder:#24304e;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+}
+html[data-theme="light"]{
+  --bg:#ffffff;
+  --panel:#f6f7f9;
+  --panel2:#ffffff;
+  --txt:#0f172a;
+  --muted:#475569;
+  --line:rgba(15,23,42,.12);
+  --btnBg:#ffffff;
+  --btnBorder:rgba(15,23,42,.14);
+  --btnHover:#2563eb;
+  --pillBg:#ffffff;
+  --pillBorder:rgba(15,23,42,.16);
+  --shadow:0 10px 30px rgba(0,0,0,.10);
+}
+html[data-theme="dark"]{
+  --bg:#0b1220;
+  --panel:#0e172a;
+  --panel2:#0b162c;
+  --txt:#e5e7eb;
+  --muted:#9ca3af;
+  --line:#1f2a44;
+  --btnBg:#0b1a33;
+  --btnBorder:#24304e;
+  --btnHover:#93c5fd;
+  --pillBg:#0b1a33;
+  --pillBorder:#24304e;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; background:var(--bg); color:var(--txt); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;}
+a{color:#2563eb; text-decoration:none}
+@media (prefers-color-scheme: dark){ a{color:#93c5fd} }
+a:hover{text-decoration:underline}
+
+.app{height:100vh; width:100vw; display:flex; flex-direction:column; overflow:hidden}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid var(--line);
+  background:color-mix(in srgb, var(--panel) 95%, transparent);
+  gap:10px;
+}
+.title{display:flex; align-items:baseline; gap:10px}
+.title h1{margin:0; font-size:clamp(14px, 1.4vw, 18px); letter-spacing:.2px}
+.badge{font-size:12px; color:var(--muted)}
+.controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+select,button{
+  background:var(--btnBg);
+  border:1px solid var(--btnBorder);
+  color:var(--txt);
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:12px;
+  cursor:pointer;
+}
+button:hover{border-color:var(--btnHover)}
+button:disabled{opacity:.5; cursor:not-allowed}
+.theme-toggle{display:flex; align-items:center; gap:8px;}
+.theme-pill{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px;
+  border-radius:12px;
+  border:1px solid var(--btnBorder);
+  background:var(--btnBg);
+  box-shadow:var(--shadow);
+}
+.small{color:var(--muted); font-size:12px}
+
+.main{flex:1; min-height:0; display:flex; flex-direction:column}
+#mapWrap{flex:1; min-height:0}
+#map{height:100%; width:100%}
+
+/* bigger bottom panel + scales better */
+.bottom{
+  height:clamp(280px, 40vh, 460px);
+  border-top:1px solid var(--line);
+  background:color-mix(in srgb, var(--panel) 96%, transparent);
+  display:grid;
+  grid-template-columns: 1.1fr 1.4fr;
+  gap:10px;
+  padding:10px;
+  overflow:hidden;
+}
+.card{
+  background:color-mix(in srgb, var(--panel2) 92%, transparent);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:10px;
+  min-height:0;
+  overflow:auto; /* allow scroll instead of clipping */
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  box-shadow:var(--shadow);
+}
+.card h2{
+  margin:0;
+  font-size:clamp(12px, 1.2vw, 14px);
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.kv{display:grid; grid-template-columns: 110px 1fr; gap:6px 10px; font-size:12px}
+.pillRow{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.pill{
+  display:inline-flex; align-items:center;
+  max-width: 280px;
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid var(--pillBorder);
+  background:var(--pillBg);
+  font-size:11px;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pill strong{margin-right:6px; font-weight:600}
+.pill.red{border-color: rgba(239,68,68,.55)}
+.pill.yellow{border-color: rgba(245,158,11,.55)}
+.pill.green{border-color: rgba(22,163,74,.55)}
+
+.pill.black{border-color: rgba(168,85,247,.65)}
+.grid2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:6px;
+  overflow:auto;
+  padding-right:2px;
+}
+.linkItem{
+  border:1px solid var(--btnBorder);
+  background:var(--btnBg);
+  border-radius:12px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:0;
+}
+.linkTitle{
+  font-size:12px;
+  line-height:1.15;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+.linkMeta{display:flex; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:11px}
+.linkUrl{
+  font-size:11px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.forecastRow{ display:flex; gap:8px; width:100%; }
+.dayTile{
+  flex:1;
+  border:1px solid var(--btnBorder);
+  background:var(--btnBg);
+  border-radius:12px;
+  padding:8px;
+  min-width:0;
+}
+.dayName{font-size:11px; color:var(--muted); margin-bottom:4px}
+.dayTemp{font-size:12px}
+.dayDesc{font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.dayTop{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.wxIcon{font-size:16px; line-height:1; opacity:.95}
+
+#overlay{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center; justify-content:center;
+  z-index:9999;
+  padding:20px;
+}
+.ovCard{
+  width:min(720px, 96vw);
+  background:color-mix(in srgb, var(--panel) 98%, transparent);
+  border:1px solid var(--btnBorder);
+  border-radius:16px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  box-shadow:var(--shadow);
+}
+.ovTop{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.ovTitle{font-size:14px; font-weight:700}
+#progBarWrap{height:10px; background:var(--btnBg); border:1px solid var(--btnBorder); border-radius:999px; overflow:hidden}
+#progBar{height:100%; width:0%; background:#3b82f6}
+.ovBtns{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+.errBox{display:none; border:1px solid rgba(239,68,68,.5); background:rgba(239,68,68,.08); border-radius:12px; padding:10px; font-size:12px; color:#fecaca}
+
+.leaflet-tooltip.portTip{
+  background:color-mix(in srgb, var(--panel2) 92%, transparent);
+  border:1px solid var(--btnBorder);
+  color:var(--txt);
+  border-radius:10px;
+  padding:8px 10px;
+  box-shadow:var(--shadow);
+}
+.tipTitle{font-weight:700; margin-bottom:4px; font-size:12px}
+.tipRow{font-size:11px; color:var(--muted)}
+.statusDot{display:inline-block; width:8px; height:8px; border-radius:999px; margin-right:6px; vertical-align:middle}
+
+.statusLine{display:flex; align-items:center; gap:8px;}
+.statusIcon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:26px; height:26px;
+  border-radius:12px;
+  border:1px solid var(--btnBorder);
+  background:var(--btnBg);
+  box-shadow:var(--shadow);
+  font-size:14px;
+}
+.asof{ margin-top:2px; font-size:11px; color:var(--muted); }
+</style>
+</head>
+
+<body>
+<div id="staleBanner" style="display:none;background:#7a0000;color:white;padding:8px;text-align:center;font-weight:600;">Data may be outdated (source last updated over 5 days ago)</div>
+<div class="app">
+  <div class="topbar">
+    <div class="title">
+      <h1>PortStatus</h1>
+      <div class="badge">live disruptions • fast prefetch</div>
+    </div>
+
+    <div class="controls">
+      <div class="theme-toggle">
+        <button id="themeToggle" title="Theme">
+          <span class="theme-pill" id="themeIcon">◐</span>
+          <span id="themeLabel" class="small">System</span>
+        </button>
+      </div>
+<button id="btnAbout">About</button>
+</div>
+  </div>
+
+  <div class="main">
+    <div id="mapWrap"><div id="map"></div></div>
+
+    <div class="bottom">
+      <div class="card" id="statusCard">
+        <h2>
+          <span>Port status</span>
+          <span class="small" id="lastUpdatedText"></span>
+        </h2>
+
+        <div class="kv">
+          <div class="small">Port</div><div id="portName">Click a port</div>
+
+          <div class="small">Status</div>
+          <div class="statusLine">
+            <span class="statusIcon" id="statusIcon">●</span>
+            <span id="portStatus"></span>
+          </div>
+        </div>
+
+        <div class="asof" id="asOfNote"></div>
+
+        <div class="pillRow" id="portSignals" style="margin-top:2px;"></div>
+
+        <div>
+          <div class="small" style="margin:6px 0 6px">5-day forecast</div>
+          <div class="forecastRow" id="forecastRow">
+            <div class="dayTile"><div class="dayTop"><div class="dayName"></div><div class="wxIcon"></div></div><div class="dayTemp"></div><div class="dayDesc"></div></div>
+            <div class="dayTile"><div class="dayTop"><div class="dayName"></div><div class="wxIcon"></div></div><div class="dayTemp"></div><div class="dayDesc"></div></div>
+            <div class="dayTile"><div class="dayTop"><div class="dayName"></div><div class="wxIcon"></div></div><div class="dayTemp"></div><div class="dayDesc"></div></div>
+            <div class="dayTile"><div class="dayTop"><div class="dayName"></div><div class="wxIcon"></div></div><div class="dayTemp"></div><div class="dayDesc"></div></div>
+            <div class="dayTile"><div class="dayTop"><div class="dayName"></div><div class="wxIcon"></div></div><div class="dayTemp"></div><div class="dayDesc"></div></div>
+          </div>
+        </div>
+
+        <div class="small" id="hintText">Only ports in view are prefetched to keep things fast.</div>
+      </div>
+
+      <div class="card" id="eventsCard">
+        <h2>
+          <span>Operational disruptions</span>
+          <span class="small" id="eventsSummary"></span>
+        </h2>
+
+        <div id="eventsStaleBanner" style="display:none;margin-top:10px;border-radius:12px;padding:10px;font-size:12px;font-weight:600;border:1px solid rgba(15,23,42,.25);background:rgba(15,23,42,.06);color:inherit;">
+          This port’s disruption data is older than 5 days and may be out of date.
+        </div>
+
+        <div class="small" id="noDisruptionsMsg">No operational disruptions to display.</div>
+        <div class="grid2" id="eventsGrid" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="ovCard">
+    <div class="ovTop">
+      <div class="ovTitle" id="overlayTitle">Loading PortGuard data…</div>
+      <div class="small" id="overlayCounts"></div>
+    </div>
+    <div id="progBarWrap"><div id="progBar"></div></div>
+    <div class="errBox" id="errBox"></div>
+    <div class="ovBtns">
+      <button id="btnBg">Continue in background</button>
+</div>
+    <div class="small">
+      Backend: <code>little-cell-823f.ian-d-coulter.workers.dev</code>
+    </div>
+  </div>
+</div>
+
+
+<div id="aboutOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+  <div class="ovCard" role="dialog" aria-modal="true" aria-label="About PortStatus">
+    <div class="ovTop">
+      <div class="ovTitle">About PortStatus – Data Sources & Transparency</div>
+      <button id="btnCloseAbout">Close</button>
+    </div>
+    <div class="small" style="line-height:1.55">
+      <p><strong>Primary authority source</strong></p>
+      <ul>
+        <li><strong>US Coast Guard NAVCEN</strong> – Port Status pages and Captain of the Port (COTP) contact/bulletin information (processed by the PortStatus Worker).</li>
+      </ul>
+
+      <p><strong>Port locations & coverage</strong></p>
+      <ul>
+        <li><strong>US DOT / Bureau of Transportation Statistics</strong> – Principal Ports (used to place and rank major US ports).</li>
+        <li><strong>NGA World Port Index (WPI)</strong> – Additional ports dataset (optional “All ports (WPI)” coverage).</li>
+      </ul>
+
+      <p><strong>Weather</strong></p>
+      <ul>
+        <li><strong>NOAA / weather.gov</strong> – National Weather Service forecast API (used for the 5‑day outlook tiles).</li>
+      </ul>
+
+      <p><strong>Maps & infrastructure</strong></p>
+      <ul>
+        <li><strong>Leaflet</strong> – Map rendering library.</li>
+        <li><strong>OpenStreetMap</strong> (light) and <strong>Carto</strong> (dark) – Map tile layers.</li>
+        <li><strong>Cloudflare Workers</strong> – PortStatus backend that retrieves/normalizes authority data and may cache briefly for reliability.</li>
+      </ul>
+
+      <p class="small">Transparency note: this page uses public, authoritative sources. Some requests may be cached briefly (e.g., minutes) to improve performance and resilience. The UI shows an “Last Reported Event Date” timestamp when available from the backend response.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+<script>
+// Compute age in days using sourceLastChangedMax (YYYY-MM-DD) when available; fall back to dataAgeDays.
+
+// Compute age in days for a port response.
+// Priority:
+//  1) Port-specific lastChanged in payload.items (e.g., NAVCEN port status row) if present
+//  2) payload.sourceLastChangedMax (YYYY-MM-DD)
+//  3) payload.dataAgeDays (number)
+function computeDataAgeDays(payload){
+  try{
+    const pickDate = (s) => {
+      if (!s || typeof s !== "string") return null;
+      const t = s.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
+      const d = new Date(t + "T00:00:00Z");
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    // (1) Scan items for a port-level lastChanged
+    if (Array.isArray(payload?.items)){
+      for (const it of payload.items){
+        const d = pickDate(it?.lastChanged || it?.last_changed || it?.date);
+        if (d){
+          const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+          if (Number.isFinite(diff)) return diff;
+        }
+      }
+    }
+
+    // (2) Use sourceLastChangedMax
+    const d2 = pickDate(payload?.sourceLastChangedMax || payload?.source_last_changed_max);
+    if (d2){
+      const diff = Math.floor((Date.now() - d2.getTime()) / 86400000);
+      if (Number.isFinite(diff)) return diff;
+    }
+
+    // (3) Fallback numeric
+    const n = Number(payload?.dataAgeDays ?? payload?.data_age_days ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  } catch(e){
+    return 0;
+  }
+}
+
+// Stale-data banner helper
+function checkStale(events){
+  try{
+    const maxAge = Math.max.apply(null, events.map(e => Number(e.dataAgeDays || 0)));
+    if (maxAge > 5){
+      const b = document.getElementById("staleBanner");
+      if (b){
+        b.style.display = "block";
+        b.textContent = `Data may be outdated (max age ${Math.floor(maxAge)} days)`;
+      }
+    }
+  } catch(e) {}
+}
+
+(() => {
+  const OFFICIAL_EVENTS_PROXY_BASE = "https://little-cell-823f.ian-d-coulter.workers.dev";
+  const PREFETCH_CONCURRENCY = 8;
+  const PREFETCH_TIMEOUT_MS = 12000;
+  const IN_VIEW_BUFFER_RATIO = 0.35;
+  const REFRESH_MINUTES = 20;
+
+  const TILE_LIGHT = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const TILE_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+  const PRINCIPAL_PORTS_LAYER = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Principal_Ports/FeatureServer/0";
+  const THEME_KEY = "portstatus_theme";
+
+  let map;
+  let tileLayer;
+  let portsPrincipal = [];
+  let shownPorts = [];
+  let markersById = new Map();
+  let statusById = new Map();
+
+  let stopPrefetch = false;
+  let prefetchInFlight = 0;
+  let prefetchQueue = [];
+  let prefetchStats = { total:0, done:0, green:0, yellow:0, red:0, failed:0 };
+
+  const $ = (id) => document.getElementById(id);
+  const showOverlay = () => { $("overlay").style.display="flex"; };
+  const hideOverlay = () => { $("overlay").style.display="none"; };
+  const setErr = (text) => {
+    const box = $("errBox");
+    if (!text){ box.style.display="none"; box.textContent=""; return; }
+    box.style.display="block";
+    box.textContent = text;
+  };
+  const fmtTime = (d) => {
+    try {
+      const dt = (d instanceof Date) ? d : new Date(d);
+      return dt.toLocaleString(undefined, {year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit"});
+    } catch { return ""; }
+  };
+
+  const levelToColor = (lvl) => lvl === "black" ? "var(--purple)" : (lvl === "red" ? "var(--red)" : (lvl === "yellow" ? "var(--yellow)" : (lvl === "green" ? "var(--green)" : "var(--gray)")));
+  const levelToLabel = (lvl) => lvl === "black" ? "Historic disruption" : (lvl === "red" ? "Reduction / Closure (recent)" : (lvl === "yellow" ? "Reduction / Closure (within 30 days)" : (lvl === "green" ? "Normal" : "Unknown")));
+  const levelToIcon = (lvl) => lvl === "black" ? "■" : (lvl === "red" ? "✖" : (lvl === "yellow" ? "▲" : (lvl === "green" ? "●" : "•")));
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function setMarkerLevel(portId, lvl){
+    const marker = markersById.get(portId);
+    if(!marker) return;
+    const color = levelToColor(lvl);
+    marker.setStyle({ color, fillColor: color, fillOpacity: 0.85 });
+  }
+
+  function updateTooltip(port){
+    const st = statusById.get(port.id);
+    const lvl = st?.level || "unknown";
+    const dotColor = levelToColor(lvl);
+    const updated = st?.updatedAt ? fmtTime(st.updatedAt) : "—";
+    const html = `
+      <div class="tipTitle">${escapeHtml(port.name)}</div>
+      <div class="tipRow"><span class="statusDot" style="background:${dotColor}"></span>${levelToLabel(lvl)}</div>
+      <div class="tipRow">Updated: ${escapeHtml(updated)}</div>
+    `;
+    const marker = markersById.get(port.id);
+    if(marker){
+      marker.unbindTooltip();
+      marker.bindTooltip(html, {className:"portTip", direction:"top", sticky:true, opacity:1});
+    }
+  }
+
+  function getSavedTheme(){
+    const v = localStorage.getItem(THEME_KEY);
+    return (v === "light" || v === "dark" || v === "system") ? v : "system";
+  }
+  function isSystemDark(){ return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches; }
+
+  function setMapTheme(theme){
+    const useDark = (theme === "dark") || (theme === "system" && isSystemDark());
+    const url = useDark ? TILE_DARK : TILE_LIGHT;
+    if(!map) return;
+    if(tileLayer) map.removeLayer(tileLayer);
+    tileLayer = L.tileLayer(url, { maxZoom:18, attribution:"&copy; OpenStreetMap" }).addTo(map);
+  }
+
+  function applyTheme(theme){
+    const html = document.documentElement;
+    if (theme === "light") html.dataset.theme = "light";
+    else if (theme === "dark") html.dataset.theme = "dark";
+    else {
+      delete html.dataset.theme;
+      if (isSystemDark()) html.dataset.theme = "dark";
+    }
+    $("themeLabel").textContent = theme === "system" ? "System" : (theme[0].toUpperCase() + theme.slice(1));
+    $("themeIcon").textContent = theme === "dark" ? "☾" : theme === "light" ? "☀" : "◐";
+    setMapTheme(theme);
+  }
+
+  function initThemeUI(){
+    $("themeToggle")?.addEventListener("click", () => {
+      const cur = getSavedTheme();
+      const next = cur === "system" ? "dark" : cur === "dark" ? "light" : "system";
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
+    window.matchMedia?.("(prefers-color-scheme: dark)")?.addEventListener("change", () => {
+      if(getSavedTheme() === "system") applyTheme("system");
+    });
+    if (!localStorage.getItem(THEME_KEY)) localStorage.setItem(THEME_KEY, "system");
+    applyTheme(getSavedTheme());
+  }
+
+  async function fetchWithTimeout(url, options={}){
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), options.timeoutMs || PREFETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } finally { clearTimeout(t); }
+  }
+
+  function centroidOfPolygon(coords){
+    let pts = [];
+    if(!coords) return null;
+    if (typeof coords[0][0][0] === "number") pts = coords[0];
+    else if (Array.isArray(coords[0][0][0])) pts = coords[0][0];
+    else return null;
+    let sumX=0, sumY=0, n=0;
+    for (const p of pts){ if(p && p.length>=2){ sumX+=p[0]; sumY+=p[1]; n++; } }
+    if(!n) return null;
+    return [sumY/n, sumX/n];
+  }
+
+  async function loadPrincipalPorts(){
+    const url = `${PRINCIPAL_PORTS_LAYER}/query?where=1%3D1&outFields=PORTNAME,RANK,TOTAL,PORT,TYPE&outSR=4326&f=geojson`;
+    const res = await fetchWithTimeout(url, { timeoutMs: 20000 });
+    if(!res.ok) throw new Error(`Principal Ports fetch failed: HTTP ${res.status}`);
+    const gj = await res.json();
+    const out = [];
+    for (const f of (gj.features || [])){
+      const name = f.properties?.PORTNAME || "Port";
+      const rank = Number(f.properties?.RANK);
+      const total = Number(f.properties?.TOTAL);
+      const id = `pp_${f.properties?.PORT ?? f.properties?.OBJECTID ?? Math.random().toString(16).slice(2)}`;
+      let latlon = null;
+      if (f.geometry?.type === "Polygon") latlon = centroidOfPolygon(f.geometry.coordinates);
+      if (f.geometry?.type === "MultiPolygon") latlon = centroidOfPolygon(f.geometry.coordinates);
+      if(!latlon) continue;
+      out.push({ id, name, lat: latlon[0], lon: latlon[1], rank, total });
+    }
+    out.sort((a,b) => (b.total||0) - (a.total||0) || (a.rank||9999)-(b.rank||9999));
+    portsPrincipal = out;
+  }
+
+  
+  
+  function computeCore80(principalPorts){
+    const totalSum = principalPorts.reduce((s,p)=>s+(p.total||0), 0);
+    let cum=0;
+    const core=[];
+    for (const p of principalPorts){
+      core.push(p);
+      cum += (p.total||0);
+      if (totalSum>0 && (cum/totalSum) >= 0.80) break;
+    }
+    return core;
+  }
+
+  function initMap(){
+    map = L.map("map", { zoomControl: true }).setView([39.5, -98.35], 4);
+    setMapTheme(getSavedTheme());
+    map.on("moveend zoomend", () => schedulePrefetchInView());
+  }
+
+  function clearMarkers(){
+    for (const m of markersById.values()) m.remove();
+    markersById.clear();
+  }
+
+  function renderPorts(ports){
+    clearMarkers();
+    for (const p of ports){
+      const circle = L.circleMarker([p.lat, p.lon], { radius:6, color:"var(--gray)", fillColor:"var(--gray)", fillOpacity:0.85, weight:2 }).addTo(map);
+      circle.on("click", () => onSelectPort(p));
+      markersById.set(p.id, circle);
+      updateTooltip(p);
+      const st = statusById.get(p.id);
+      if(st?.level) setMarkerLevel(p.id, st.level);
+    }
+  }
+
+  function boundsWithBuffer(){
+    const b = map.getBounds();
+    const latSpan = b.getNorth() - b.getSouth();
+    const lonSpan = b.getEast() - b.getWest();
+    const latPad = latSpan * IN_VIEW_BUFFER_RATIO;
+    const lonPad = lonSpan * IN_VIEW_BUFFER_RATIO;
+    return L.latLngBounds([b.getSouth()-latPad, b.getWest()-lonPad],[b.getNorth()+latPad, b.getEast()+lonPad]);
+  }
+
+  function portsInBufferedView(){
+    const b = boundsWithBuffer();
+    return shownPorts.filter(p => b.contains([p.lat, p.lon]));
+  }
+
+  function needsRefresh(portId){
+    const st = statusById.get(portId);
+    if(!st?.updatedAt) return true;
+    const ageMin = (Date.now() - new Date(st.updatedAt).getTime()) / 60000;
+    return ageMin > REFRESH_MINUTES;
+  }
+
+  let prefetchDebounce = null;
+  function schedulePrefetchInView(){
+    clearTimeout(prefetchDebounce);
+    prefetchDebounce = setTimeout(() => {
+      startPrefetch(portsInBufferedView().filter(p => needsRefresh(p.id)));
+    }, 450);
+  }
+
+  function resetPrefetchStats(){ prefetchStats = { total:0, done:0, green:0, yellow:0, red:0, failed:0 }; }
+
+  function setOverlayPhase(msg, pct){
+    const t = $("overlayTitle");
+    if(t) t.textContent = msg;
+    if (typeof pct === "number"){
+      $("progBar").style.width = Math.max(2, Math.min(100, Math.round(pct))) + "%";
+    }
+  }
+
+  function showOverlayProgress(){
+    const t = Math.max(prefetchStats.total, 1);
+    const pct = Math.min(100, Math.round((prefetchStats.done / t) * 100));
+    $("progBar").style.width = pct + "%";
+    $("overlayCounts").textContent = `${prefetchStats.done}/${prefetchStats.total} • green ${prefetchStats.green} • yellow ${prefetchStats.yellow} • red ${prefetchStats.red} • failed ${prefetchStats.failed}`;
+    $("eventsSummary").textContent = prefetchStats.total ? `Prefetch: ${prefetchStats.done}/${prefetchStats.total}` : "—";
+  }
+
+  function startPrefetch(ports){
+    if(!ports || !ports.length) return;
+    stopPrefetch = false;
+    const seen = new Set(prefetchQueue.map(x=>x.id));
+    let addedCount = 0;
+    for (const p of ports){ if(!seen.has(p.id)){ prefetchQueue.push(p); seen.add(p.id); addedCount++; } }
+    prefetchStats.total += addedCount;
+    showOverlay();
+    showOverlayProgress();
+    pumpQueue();
+  }
+
+  function stopAllPrefetch(){
+    stopPrefetch = true;
+    prefetchQueue = [];
+    showOverlayProgress();
+  }
+
+  async function pumpQueue(){
+    if(stopPrefetch) return;
+    while(prefetchInFlight < PREFETCH_CONCURRENCY && prefetchQueue.length){
+      const port = prefetchQueue.shift();
+      prefetchInFlight++;
+      fetchDisruptionSignals(port)
+        .catch(err => {
+          prefetchStats.failed++;
+          statusById.set(port.id, { level:"unknown", label:"Unknown", updatedAt:new Date().toISOString(), signals:[], events:[], asOfNote:null });
+          updateTooltip(port);
+          if(!$("errBox").textContent) setErr(String(err));
+        })
+        .finally(() => {
+          prefetchInFlight--;
+          prefetchStats.done++;
+          showOverlayProgress();
+          if(prefetchStats.done >= 25) hideOverlay();
+          pumpQueue();
+        });
+    }
+  }
+
+  function normalizeEventsFromWorkerPayload(payload){
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const events = [];
+    for (const it of items){
+      if(!it || typeof it !== "object") continue;
+      if (it.type === "signal"){
+        const sev = String(it.severity || "").toUpperCase();
+        if (sev && sev !== "INFO" && it.title){
+          events.push({ source: it.source || "portstatus", title: it.title + (it.port ? ` — ${it.port}` : ""), url: it.url || "" });
+        }
+        continue;
+      }
+      if (it.type === "authority_reference"){
+        events.push({ source: it.source || "portstatus", title: it.title || "Authority reference", url: it.url || "" });
+        continue;
+      }
+      if (it.type === "cotp_port_status" && it.url && it.port){
+        events.push({ source:"navcen", title:`NAVCEN Port Status — ${it.port} (${it.zone || ""})`, url: it.url });
+        continue;
+      }
+      if ((it.url || it.link) && (it.title || it.headline)){
+        events.push({ source: it.source || it.publisher || "Source", title: it.title || it.headline, url: it.url || it.link });
+      }
+    }
+    return events.filter(e => !!e.url);
+  }
+
+  function computeAsOfNote(payload){
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const health = items.find(x => x && x.type === "port_health");
+    const asOf = health?.as_of ? fmtTime(health.as_of) : null;
+    let navcenLast = null;
+    for (const it of items){
+      if (it?.type === "cotp_port_status" && it.last_changed){ navcenLast = it.last_changed; break; }
+    }
+    if (asOf && navcenLast) return `Last Reported Event Date ${asOf}. Source last changed: ${navcenLast}.`;
+    if (asOf) return `Last Reported Event Date ${asOf}.`;
+    return null;
+  }
+
+  async function fetchDisruptionSignals(port){
+    const url = `${OFFICIAL_EVENTS_PROXY_BASE.replace(/\/$/,'')}/events?lat=${encodeURIComponent(port.lat)}&lon=${encodeURIComponent(port.lon)}&name=${encodeURIComponent(port.name)}`;
+    const res = await fetchWithTimeout(url, { timeoutMs: 16000 });
+    if(!res.ok) {
+      let body = "";
+      try { body = await res.text(); } catch(e) {}
+      body = (body || "").slice(0, 400);
+      throw new Error(`Proxy fetch failed HTTP ${res.status}${body ? " — " + body : ""}`);
+    }
+const data = await res.json();
+    const lvl = (data.status || data.level || "green");
+    const ageDays = computeDataAgeDays(data);
+    const isDisrupted = (lvl === "yellow" || lvl === "red");
+    let displayLvl = lvl;
+    if (isDisrupted){
+      if (ageDays <= 5) displayLvl = "red";
+      else if (ageDays <= 30) displayLvl = "yellow";
+      else displayLvl = "black";
+    }
+const events = normalizeEventsFromWorkerPayload(data).slice(0, 10);
+    const signalTitles = [];
+    if (Array.isArray(data?.items)){
+      for (const it of data.items){
+        if (it?.type === "signal"){
+          const sev = String(it.severity || "").toUpperCase();
+          if (sev && sev !== "INFO" && it.title) signalTitles.push(it.title);
+        }
+      }
+    }
+    const st = { level:displayLvl, rawLevel:lvl, label:levelToLabel(displayLvl), dataAgeDays: ageDays, sourceLastChangedMax: data?.sourceLastChangedMax || null, updatedAt:new Date().toISOString(), signals:Array.from(new Set(signalTitles)).slice(0,6), events, asOfNote: computeAsOfNote(data) };
+    statusById.set(port.id, st);
+    setMarkerLevel(port.id, displayLvl);
+    updateTooltip(port);
+    if (displayLvl === "black") prefetchStats.black++; else if (displayLvl === "red") prefetchStats.red++; else if (displayLvl === "yellow") prefetchStats.yellow++; else if (displayLvl === "green") prefetchStats.green++;
+  }
+
+  async function onSelectPort(port){
+    $("portName").textContent = port.name;
+    const st = statusById.get(port.id);
+    const lvl = st?.level || "unknown";
+    $("portStatus").textContent = st ? st.label : "";
+    $("statusIcon").textContent = levelToIcon(lvl);
+    $("lastUpdatedText").textContent = "";
+    $("asOfNote").textContent = st?.sourceLastChangedMax ? `Last Reported Event Date: ${st.sourceLastChangedMax}` : "";
+
+    $("portSignals").innerHTML = "";
+
+    const age = Number(st?.dataAgeDays || 0);
+    const rawDisruption = (st && st.rawLevel && (st.rawLevel==="yellow" || st.rawLevel==="red"));
+
+    // If disruption is NOT active (older than 5 days), only show a single summary pill:
+    // "Reduction / closure within X days" (no detailed reduction/closure type pills).
+    if (rawDisruption && age > 5){
+      const p = document.createElement("span");
+      p.className = `pill ${lvl==="black"?"black":lvl==="yellow"?"yellow":lvl==="red"?"red":lvl==="green"?"green":""}`;
+      p.innerHTML = `<strong>Reduction or closure</strong> reported ${Math.floor(age)} days ago`;
+      $("portSignals").appendChild(p);
+    } else {
+      // Default behavior (active disruptions or normal): status pill + signal pills
+      const statusPill = document.createElement("span");
+      statusPill.className = `pill ${lvl==="black"?"black":lvl==="red"?"red":lvl==="yellow"?"yellow":lvl==="green"?"green":""}`;
+      statusPill.innerHTML = `<strong>${levelToLabel(lvl)}</strong>`;
+      $("portSignals").appendChild(statusPill);
+
+      for (const sig of (st?.signals || [])){
+        const sp = document.createElement("span");
+        sp.className = "pill";
+        sp.textContent = sig;
+        $("portSignals").appendChild(sp);
+      }
+    }
+
+fillForecastSkeleton();
+    try{ await loadForecastIntoUI(port.lat, port.lon); } catch {}
+    renderEventsForSelected(port);
+
+    if(needsRefresh(port.id)){
+      showOverlay();
+      try{ await fetchDisruptionSignals(port); } finally {
+    
+        const newSt = statusById.get(port.id);
+        const newLvl = newSt?.level || "unknown";
+        $("portStatus").textContent = newSt ? newSt.label : "—";
+        $("statusIcon").textContent = levelToIcon(newLvl);
+        $("lastUpdatedText").textContent = newSt?.updatedAt ? ("Updated " + fmtTime(newSt.updatedAt)) : "—";
+        $("asOfNote").textContent = newSt?.asOfNote || "—";
+        renderEventsForSelected(port);
+      }
+    }
+  }
+
+  function renderEventsForSelected(port){
+    const st = statusById.get(port.id);
+    const grid = $("eventsGrid");
+    const noMsg = $("noDisruptionsMsg");
+    grid.innerHTML = "";
+    const staleBanner = $("eventsStaleBanner");
+    if (staleBanner){
+      const age = Number(st?.dataAgeDays || 0);
+      const rawDisruption = (st && st.rawLevel && (st.rawLevel==="yellow" || st.rawLevel==="red"));
+      if (rawDisruption){
+        staleBanner.style.display = "block";
+        staleBanner.textContent = age <= 5
+          ? `Reduction/closure last changed ${Math.floor(age)} day(s) ago (recent: ≤5 days)`
+          : (age <= 30
+              ? `Reduction/closure last changed ${Math.floor(age)} day(s) ago (within 6–30 days)`
+              : `Reduction/closure last changed ${Math.floor(age)} day(s) ago (older than 30 days)`);
+} else {
+        staleBanner.style.display = "none";
+      }
+    }
+    if(!st || (st.level !== "yellow" && st.level !== "red" && st.level !== "black")){
+      $("eventsSummary").textContent = "—";
+      noMsg.style.display = "block";
+      return;
+    }
+    noMsg.style.display = "none";
+    const events = (st.events || []).slice(0,6);
+    $("eventsSummary").textContent = `${levelToLabel(st.level)} • ${events.length} links`;
+    noMsg.style.display = events.length ? "none" : "block";
+    for (const e of events){
+      const card = document.createElement("div");
+      card.className = "linkItem";
+      const title = document.createElement("div");
+      title.className = "linkTitle";
+      title.textContent = e.title || "Untitled";
+      const meta = document.createElement("div");
+      meta.className = "linkMeta";
+      meta.textContent = `${e.source || "source"}`;
+      const url = document.createElement("a");
+      url.className = "linkUrl";
+      url.href = e.url;
+      url.target = "_blank";
+      url.rel = "noopener noreferrer";
+      url.textContent = e.url || "";
+      card.appendChild(title); card.appendChild(meta); card.appendChild(url);
+      grid.appendChild(card);
+    }
+  }
+
+  function fillForecastSkeleton(){
+    const row = $("forecastRow");
+    for (const tile of row.querySelectorAll(".dayTile")){
+      tile.querySelector(".dayName").textContent = "—";
+      tile.querySelector(".dayTemp").textContent = "—";
+      tile.querySelector(".dayDesc").textContent = "—";
+      tile.querySelector(".wxIcon").textContent = "—";
+    }
+  }
+
+  function wxIconFor(text){
+    const t = String(text || "").toLowerCase();
+    if (t.includes("thunder")) return "⛈️";
+    if (t.includes("snow")) return "❄️";
+    if (t.includes("sleet") || t.includes("ice")) return "🧊";
+    if (t.includes("rain") || t.includes("showers")) return "🌧️";
+    if (t.includes("fog") || t.includes("mist") || t.includes("haze")) return "🌫️";
+    if (t.includes("wind")) return "💨";
+    if (t.includes("cloud")) return "☁️";
+    if (t.includes("clear") || t.includes("sun")) return "☀️";
+    return "🌡️";
+  }
+
+  async function loadForecastIntoUI(lat, lon){
+    const ptsUrl = `https://api.weather.gov/points/${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+    const ptsRes = await fetchWithTimeout(ptsUrl, { timeoutMs: 12000 });
+    if(!ptsRes.ok) throw new Error("Weather points failed");
+    const pts = await ptsRes.json();
+    const fcUrl = pts?.properties?.forecast;
+    if(!fcUrl) throw new Error("No forecast URL");
+    const fcRes = await fetchWithTimeout(fcUrl, { timeoutMs: 12000 });
+    if(!fcRes.ok) throw new Error("Forecast failed");
+    const fc = await fcRes.json();
+    const periods = (fc?.properties?.periods || []).slice(0,10);
+    const days = [];
+    for (const p of periods){ if(p.isDaytime){ days.push(p); if(days.length>=5) break; } }
+    if(days.length<5){ for (const p of periods){ if(days.includes(p)) continue; days.push(p); if(days.length>=5) break; } }
+    const tiles = Array.from($("forecastRow").querySelectorAll(".dayTile"));
+    for (let i=0;i<tiles.length;i++){
+      const t = tiles[i];
+      const p = days[i];
+      if(!p){ t.querySelector(".dayName").textContent="—"; continue; }
+      t.querySelector(".dayName").textContent = p.name || "Day";
+      t.querySelector(".wxIcon").textContent = wxIconFor(p.shortForecast || "");
+      t.querySelector(".dayTemp").textContent = (p.temperature!=null ? `${p.temperature}°${p.temperatureUnit||""}` : "—");
+      t.querySelector(".dayDesc").textContent = p.shortForecast || "";
+    }
+  }
+
+  async function applyCoverage(mode){
+    // Coverage filtering removed: always show all principal ports
+    stopAllPrefetch();
+    setErr("");
+    resetPrefetchStats();
+    showOverlayProgress();
+    showOverlay();
+
+    shownPorts = portsPrincipal.slice();
+    renderPorts(shownPorts);
+    checkStale(shownPorts);
+    hideOverlay();
+    schedulePrefetchInView();
+  }
+
+  async function prefetchAllShownPorts(){
+    if(!shownPorts.length) return;
+    resetPrefetchStats();
+    showOverlay();
+    startPrefetch(shownPorts.filter(p => needsRefresh(p.id)));
+  }
+
+  async function init(){
+    // Show progress immediately on page load
+    resetPrefetchStats();
+    showOverlay();
+    setOverlayPhase("Initializing map…", 8);
+initThemeUI();
+$("btnAbout")?.addEventListener("click", () => { document.getElementById("aboutOverlay").style.display = "flex"; });
+    $("btnCloseAbout")?.addEventListener("click", () => { document.getElementById("aboutOverlay").style.display = "none"; });
+    document.getElementById("aboutOverlay")?.addEventListener("click", (e) => { if (e.target && e.target.id === "aboutOverlay") e.target.style.display = "none"; });
+$("btnBg").addEventListener("click", () => hideOverlay());
+
+    initMap();
+    setOverlayPhase("Loading ports list…", 20);
+    await loadPrincipalPorts();
+    setOverlayPhase("Rendering ports…", 55);
+    await applyCoverage("all");
+    setOverlayPhase("Prefetching disruption signals in view…", 70);
+    hideOverlay();
+  }
+
+  window.addEventListener("load", () => init().catch(e => { setErr(String(e)); showOverlay(); }));
+})();
+</script>
+</body>
+</html>
